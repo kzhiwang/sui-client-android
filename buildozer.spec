@@ -16,12 +16,13 @@ source.include_exts = py,png,jpg,kv,json
 # (str) 主程序入口
 source.main = main.py
 
-# (list) 应用依赖。kivy 负责界面；requests/urllib3 负责 HTTP；
-#        cryptography 负责密码加密（与桌面版相同的 Fernet 方案）。
+# (list) 应用依赖。kivy 负责界面；requests/urllib3 负责 HTTP。
+#        密码加密改用纯 Python 标准库（hashlib+hmac），不再依赖 cryptography
+#        （新版 cryptography 用 Rust 实现，无法在 Android 交叉编译）。
 #        注意：不要写死 python3/kivy 版本 —— 当前 p4a 的 hostpython3 默认是 3.14.2，
 #        若只写 python3==3.11.9 而不写 hostpython3==3.11.9 会报版本不匹配；
 #        直接不指定版本，让 p4a 用默认兼容组合最稳。
-requirements = python3, kivy, requests, urllib3, cryptography
+requirements = python3, kivy, requests, urllib3
 
 # (str) 应用版本
 version = 1.0

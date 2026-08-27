@@ -10,6 +10,7 @@ S-UI 面板 API 核心客户端（无界面依赖）
 """
 import base64
 import hashlib
+import hmac
 import json
 import os
 import random
@@ -45,45 +46,62 @@ def random_ss_password(n: int) -> str:
     return base64.b64encode(os.urandom(n)).decode()
 
 
-# ---------------- 密码加密（避免明文落盘，且可随配置迁移到其它电脑） ----------------
+# ---------------- 密码加密（避免明文落盘，且可随配置迁移到其它设备） ----------------
 #
-# 落盘策略：账号密码在写入 SUI-Client.exe 同目录的 sui_client.json 时加密，内存中仍为明文便于使用。
-# 使用 Fernet（AES+HMAC）对称加密，密钥由程序内置固定种子派生 —— 因此
-# 配置文件连同本程序一起拷贝到任意电脑都能正常解密（满足“别的电脑也能用”）。
-# 代价：密钥随程序分发，理论上可被反编译提取，故仍非“绝对安全”，但已非明文。
-# 兼容：旧配置中的明文密码（无前缀）读取时原样返回，下次保存自动被加密；
-#       旧版 dpapi:/obf: 前缀密文在本算法下无法解密，读取时返回空（需重新输入密码）。
-
-from cryptography.fernet import Fernet
+# 落盘策略：账号密码在写入配置时加密，内存中仍为明文便于使用。
+# 采用纯 Python 标准库（hashlib + hmac）实现「SHA-256 流加密 + HMAC 完整性校验」，
+# 密钥由程序内置固定种子派生 —— 因此配置文件连同本程序一起拷贝到任意设备都能正常解密。
+# 为什么不用 cryptography(Fernet)：新版 cryptography 用 Rust 实现，在 Android 交叉编译
+# （尤其 32 位 armeabi-v7a）会报 LONG_BIT 错误且无对应 wheel，故改为无依赖的纯 Python 方案。
+# 代价：密钥随程序分发，理论上可被反编译提取，故仍非"绝对安全"，但已非明文。
+# 兼容：旧明文密码（无前缀）读取时原样返回；fernet:/dpapi:/obf: 前缀密文在本实现下无法解密，返回空（需重新输入密码）。
 
 # 固定种子（随程序分发，保证可移植）。如需更强安全可改为运行时从用户处获取，
-# 但那样会失去“拷到别的电脑免输密码”的便利性。
-_KEY_SEED = "s-ui-client-portable-static-key-2026"
+# 但那样会失去“拷到别的设备免输密码”的便利性。
+_KEY_SEED = b"s-ui-client-portable-static-key-2026"
 
 
-def _fernet() -> Fernet:
-    digest = hashlib.sha256(_KEY_SEED.encode("utf-8")).digest()
-    return Fernet(base64.urlsafe_b64encode(digest))
+def _key_material() -> bytes:
+    return hashlib.sha256(_KEY_SEED).digest()
 
 
-_FERNET = _fernet()
+def _keystream(key: bytes, iv: bytes, length: int) -> bytes:
+    """基于 SHA-256 的计数模式密钥流（CTR），产出与明文等长的伪随机字节。"""
+    out = b""
+    counter = 0
+    while len(out) < length:
+        out += hashlib.sha256(key + iv + counter.to_bytes(4, "big")).digest()
+        counter += 1
+    return out[:length]
 
 
 def encrypt_secret(plain: str) -> str:
     if not plain:
         return ""
-    return "fernet:" + _FERNET.encrypt(plain.encode("utf-8")).decode("ascii")
+    data = plain.encode("utf-8")
+    key = _key_material()
+    iv = os.urandom(16)
+    enc = bytes(b ^ k for b, k in zip(data, _keystream(key, iv, len(data))))
+    mac = hmac.new(key, iv + enc, hashlib.sha256).digest()
+    return "pyaes:" + base64.b64encode(iv + enc + mac).decode("ascii")
 
 
 def decrypt_secret(cipher: str) -> str:
     if not cipher:
         return ""
-    if cipher.startswith("fernet:"):
+    if cipher.startswith("pyaes:"):
         try:
-            return _FERNET.decrypt(cipher[len("fernet:"):].encode("ascii")).decode("utf-8")
+            raw = base64.b64decode(cipher[len("pyaes:"):])
+            key = _key_material()
+            iv, enc, mac = raw[:16], raw[16:-32], raw[-32:]
+            if not hmac.compare_digest(hmac.new(key, iv + enc, hashlib.sha256).digest(), mac):
+                return ""
+            return bytes(b ^ k for b, k in zip(enc, _keystream(key, iv, len(enc)))).decode("utf-8")
         except Exception:
             return ""
-    return cipher  # 旧明文配置兼容（dpapi:/obf: 前缀视为无法解密，返回空）
+    if cipher.startswith(("fernet:", "dpapi:", "obf:")):
+        return ""  # 其它加密方案在本实现下无法解密，返回空（需重新输入密码）
+    return cipher  # 旧明文配置兼容
 
 
 
