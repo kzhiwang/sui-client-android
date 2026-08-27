@@ -18,7 +18,10 @@ source.main = main.py
 
 # (list) 应用依赖。kivy 负责界面；requests/urllib3 负责 HTTP；
 #        cryptography 负责密码加密（与桌面版相同的 Fernet 方案）。
-requirements = python3==3.11.9, kivy==2.3.1, requests, urllib3, cryptography
+#        注意：不要写死 python3/kivy 版本 —— 当前 p4a 的 hostpython3 默认是 3.14.2，
+#        若只写 python3==3.11.9 而不写 hostpython3==3.11.9 会报版本不匹配；
+#        直接不指定版本，让 p4a 用默认兼容组合最稳。
+requirements = python3, kivy, requests, urllib3, cryptography
 
 # (str) 应用版本
 version = 1.0
