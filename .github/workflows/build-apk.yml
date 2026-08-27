@@ -37,7 +37,7 @@ jobs:
       #   1) 本步骤加一行  working-directory: android
       #   2) 下方 Upload 的 path 改成  android/bin/*.apk
       - name: Build debug APK
-        run: buildozer android debug
+        run: yes | buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
