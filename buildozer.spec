@@ -34,7 +34,6 @@ android.permissions = INTERNET, ACCESS_NETWORK_STATE
 android.api = 34
 android.minapi = 24
 android.ndk = 25b
-android.sdk = 34
 
 # (bool) 是否打包为 AAB（Google Play 需要）；直接装手机选 False 出 APK
 android.archs = arm64-v8a, armeabi-v7a
