@@ -19,9 +19,8 @@ source.main = main.py
 # (list) 应用依赖。kivy 负责界面；requests/urllib3 负责 HTTP。
 #        密码加密改用纯 Python 标准库（hashlib+hmac），不再依赖 cryptography
 #        （新版 cryptography 用 Rust 实现，无法在 Android 交叉编译）。
-#        注意：不要写死 python3/kivy 版本 —— 当前 p4a 的 hostpython3 默认是 3.14.2，
-#        若只写 python3==3.11.9 而不写 hostpython3==3.11.9 会报版本不匹配；
-#        直接不指定版本，让 p4a 用默认兼容组合最稳。
+#        不写死 python3/kivy 版本：p4a.branch 已固定到 v2024.01.21，
+#        由该版本的 recipe 决定 python3/hostpython3=3.11.5、kivy=2.3.0、pyjnius=1.6.1。
 requirements = python3, kivy, requests, urllib3
 
 # (str) 应用版本
@@ -51,6 +50,14 @@ android.icon.filename = icon.png
 # (str) 启动图。已提供 1024x1024 的 presplash.png，取消下行注释即可启用。
 android.presplash.filename = presplash.png
 
+# 固定 python-for-android 到稳定 release v2024.01.21（重要，必须放在 [app] 段）：
+# master 分支自 2025-04 起把 pyjnius/kivy 从「源码交叉编译(CythonRecipe)」改成
+# 「下载 PyPI 的 android wheel(PyProjectRecipe)」，但 pyjnius 1.7.0 尚未发布 android wheel，
+# 且默认 hostpython3 升到 3.14.2 太新，导致 pip 找不到匹配的 wheel（--platform=android_24_*）。
+# v2024.01.21 用源码交叉编译：pyjnius 1.6.1 / kivy 2.3.0 / python3 与 hostpython3 均为 3.11.5，
+# 稳定可用。该版本推荐的 NDK 正是 25b（与上方 android.ndk 一致）。
+p4a.branch = v2024.01.21
+
 [buildozer]
 
 # (int) 日志等级
@@ -61,11 +68,3 @@ build_dir = .buildozer
 
 # (bool) 是否自动接受 SDK  license
 android.accept_sdk_license = True
-
-# 固定 python-for-android 到稳定 release v2024.01.21（重要）：
-# master 分支自 2025-04 起把 pyjnius/kivy 从「源码交叉编译(CythonRecipe)」改成
-# 「下载 PyPI 的 android wheel(PyProjectRecipe)」，但 pyjnius 1.7.0 尚未发布 android wheel，
-# 且默认 hostpython3 升到 3.14.2 太新，导致 pip 找不到匹配的 wheel（--platform=android_24_*）。
-# v2024.01.21 用源码交叉编译：pyjnius 1.6.1 / kivy 2.3.0 / python3 与 hostpython3 均为 3.11.5，
-# 稳定可用。该版本推荐的 NDK 正是 25b（与上方 android.ndk 一致）。
-p4a.branch = v2024.01.21
