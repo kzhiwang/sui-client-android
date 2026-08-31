@@ -62,3 +62,11 @@ build_dir = .buildozer
 
 # (bool) 是否自动接受 SDK  license
 android.accept_sdk_license = True
+
+# 固定 python-for-android 到稳定 release v2024.01.21（重要）：
+# master 分支自 2025-04 起把 pyjnius/kivy 从「源码交叉编译(CythonRecipe)」改成
+# 「下载 PyPI 的 android wheel(PyProjectRecipe)」，但 pyjnius 1.7.0 尚未发布 android wheel，
+# 且默认 hostpython3 升到 3.14.2 太新，导致 pip 找不到匹配的 wheel（--platform=android_24_*）。
+# v2024.01.21 用源码交叉编译：pyjnius 1.6.1 / kivy 2.3.0 / python3 与 hostpython3 均为 3.11.5，
+# 稳定可用。该版本推荐的 NDK 正是 25b（与上方 android.ndk 一致）。
+p4a.branch = v2024.01.21

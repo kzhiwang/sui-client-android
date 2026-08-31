@@ -29,7 +29,10 @@ jobs:
             libffi-dev libssl-dev
 
       - name: Install buildozer
-        run: pip install --upgrade pip buildozer
+        # 固定 1.5.0：与 p4a v2024.01.21 同期稳定组合。
+        # 1.6.0（2026-05）默认拉 p4a master 分支，pyjnius/kivy 走 PyProjectRecipe
+        # 会因缺少 android wheel 而失败，故锁旧版。
+        run: pip install "buildozer==1.5.0"
 
       # 假设本仓库根目录就是 android/ 文件夹的内容
       # （main.py、suicore.py、buildozer.spec、icon.png、presplash.png、.github/）。
