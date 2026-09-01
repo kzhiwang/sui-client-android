@@ -35,7 +35,9 @@ android.minapi = 24
 android.ndk = 25b
 
 # (bool) 是否打包为 AAB（Google Play 需要）；直接装手机选 False 出 APK
-android.archs = arm64-v8a, armeabi-v7a
+# 只构建 64 位：armeabi-v7a（32位）在多架构编译下 Cython 生成 .c 会失败，
+# 且 32 位手机已基本淘汰（Google 自 2019 年起要求 64 位），故只出 arm64-v8a。
+android.archs = arm64-v8a
 android.release = False
 
 # (str) 屏幕方向：手机竖屏
